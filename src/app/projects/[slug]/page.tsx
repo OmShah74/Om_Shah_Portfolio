@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, MoveLeft, Orbit, Sparkles } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { projects, projectCategoryIcons } from "@/data/portfolio";
 import { projectDetails } from "@/data/project-details";
+import { projectDocumentation } from "@/data/project-documentation";
 import { getProjectBySlug } from "@/lib/portfolio";
 import { getTechColor } from "@/lib/tech-colors";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +43,11 @@ export async function generateMetadata({
   };
 }
 
+function getRepositoryRawUrl(repository: string, path: string) {
+  const repoPath = repository.replace("https://github.com/", "");
+  return `https://raw.githubusercontent.com/${repoPath}/main/${path}`;
+}
+
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { slug } = await params;
   const project = getProjectBySlug(slug);
@@ -50,6 +57,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   }
 
   const detail = projectDetails[project.slug];
+  const documentation = projectDocumentation[project.slug];
   const Icon =
     projectCategoryIcons[
       project.category as keyof typeof projectCategoryIcons
@@ -330,6 +338,168 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
               ))}
             </div>
           </section>
+
+          {documentation ? (
+            <section className="space-y-6">
+              <div className="rounded-[1.9rem] border border-white/10 bg-black/24 p-6 md:p-8">
+                <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                  <div className="space-y-4">
+                    <div className="text-xs uppercase tracking-[0.24em] text-white/46">
+                      Product documentation
+                    </div>
+                    <div>
+                      <h2 className="font-display text-3xl text-white md:text-5xl">
+                        {documentation.title}
+                      </h2>
+                      <p className="mt-4 max-w-4xl text-sm leading-8 text-white/72 md:text-base">
+                        {documentation.subtitle}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className={cn("rounded-full border px-4 py-2 text-xs uppercase tracking-[0.18em]", detail.theme.iconWrap)}>
+                      {documentation.version}
+                    </span>
+                    <span className={cn("rounded-full border px-4 py-2 text-xs uppercase tracking-[0.18em]", detail.theme.iconWrap)}>
+                      {documentation.license}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {documentation.imagePaths.map((imagePath, index) => (
+                  <div
+                    key={imagePath}
+                    className="overflow-hidden rounded-[1.4rem] border border-white/10 bg-black/24 p-2"
+                  >
+                    <Image
+                      src={getRepositoryRawUrl(project.repository, imagePath)}
+                      alt={`${project.name} interface screenshot ${index + 1}`}
+                      width={960}
+                      height={540}
+                      className="aspect-video w-full rounded-[1rem] object-cover"
+                      unoptimized
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-6">
+                {documentation.sections.map((section) => (
+                  <section
+                    key={section.title}
+                    className="rounded-[1.9rem] border border-white/10 bg-black/24 p-6 md:p-8"
+                  >
+                    {section.eyebrow ? (
+                      <div className="text-xs uppercase tracking-[0.24em] text-white/46">
+                        {section.eyebrow}
+                      </div>
+                    ) : null}
+                    <h2 className="mt-3 font-display text-3xl text-white md:text-4xl">
+                      {section.title}
+                    </h2>
+                    {section.body ? (
+                      <p className="mt-5 max-w-5xl text-sm leading-8 text-white/72 md:text-base">
+                        {section.body}
+                      </p>
+                    ) : null}
+
+                    {section.points ? (
+                      <div className="mt-6 grid gap-3 md:grid-cols-2">
+                        {section.points.map((point) => (
+                          <div
+                            key={point}
+                            className="border-l border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-7 text-white/72"
+                          >
+                            {point}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {section.tables ? (
+                      <div className="mt-6 space-y-5">
+                        {section.tables.map((table) => (
+                          <div
+                            key={table.title}
+                            className="overflow-hidden rounded-[1.25rem] border border-white/10 bg-black/18"
+                          >
+                            <div className="border-b border-white/10 px-4 py-4">
+                              <h3 className="font-display text-2xl text-white">
+                                {table.title}
+                              </h3>
+                              {table.description ? (
+                                <p className="mt-2 text-sm leading-7 text-white/62">
+                                  {table.description}
+                                </p>
+                              ) : null}
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+                                <thead>
+                                  <tr className="bg-white/8 text-white">
+                                    {table.columns.map((column) => (
+                                      <th
+                                        key={column}
+                                        className="border-b border-white/10 px-4 py-3 font-semibold"
+                                      >
+                                        {column}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {table.rows.map((row) => (
+                                    <tr
+                                      key={row.join("-")}
+                                      className="border-b border-white/10 last:border-b-0"
+                                    >
+                                      {row.map((cell, cellIndex) => (
+                                        <td
+                                          key={`${row.join("-")}-${cellIndex}`}
+                                          className="px-4 py-3 leading-7 text-white/70"
+                                        >
+                                          {cell}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {section.code ? (
+                      <div className="mt-6 grid gap-4">
+                        {section.code.map((snippet) => (
+                          <div
+                            key={snippet.title}
+                            className="overflow-hidden rounded-[1.25rem] border border-white/10 bg-[#070a11]"
+                          >
+                            <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3">
+                              <h3 className="text-sm font-semibold text-white">
+                                {snippet.title}
+                              </h3>
+                              <span className={cn("rounded-full border px-3 py-1 text-[0.68rem] uppercase tracking-[0.16em]", detail.theme.iconWrap)}>
+                                {snippet.language}
+                              </span>
+                            </div>
+                            <pre className="overflow-x-auto p-4 text-xs leading-6 text-white/76 md:text-sm">
+                              <code>{snippet.code}</code>
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </section>
+                ))}
+              </div>
+            </section>
+          ) : null}
         </div>
       </div>
     </main>
